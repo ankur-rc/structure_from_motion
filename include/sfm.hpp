@@ -48,4 +48,6 @@ public:
     void triangulate_points();
 
     void visualise_pointcloud(std::string name);
+
+    void bundle_adjust();
 };

@@ -16,7 +16,7 @@ struct CameraPose
     cv::Mat descriptors;                 // matrix of keypoint descriptors
 
     std::map<size_t, std::map<size_t, size_t>> keypoint_match; // maps current camera's keypoint id to other cameras' keypoint id
-    std::map<size_t, size_t> keypoint_landmark;                // maps a keypoint id to a landmark id
+    std::map<size_t, size_t> keypoint_landmark;                // maps a keypoint id in current camera to a landmark id
 
     bool is_keypoint_exists(size_t keypoint_id, size_t camera_index)
     {
@@ -41,7 +41,7 @@ struct CameraPose
 
 struct Landmark
 {
-    cv::Point3f pt3d;
+    cv::Point3d pt3d;
     cv::Vec3b color;
     size_t id;
     uint visible = 0;

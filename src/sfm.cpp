@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <random>
+#include <memory>
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
@@ -15,6 +16,7 @@
 
 #include "camera_pose.hpp"
 #include "sfm.hpp"
+#include "bundle_adjust.hpp"
 
 void SFM::initialise_intrinsics()
 {
@@ -34,19 +36,22 @@ void SFM::initialise_intrinsics()
 void SFM::visualise_pointcloud(std::string name = "Point Cloud")
 {
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-    cloud->width = landmarks.size();
-    cloud->height = 1;
-    cloud->points.resize(cloud->width * cloud->height);
 
-    for (size_t i = 0; i < cloud->points.size(); ++i)
+    for (const auto &landmark : landmarks)
     {
-        cloud->points[i].x = landmarks[i].pt3d.x;
-        cloud->points[i].y = landmarks[i].pt3d.y;
-        cloud->points[i].z = landmarks[i].pt3d.z;
-        cloud->points[i].b = landmarks[i].color[0];
-        cloud->points[i].g = landmarks[i].color[1];
-        cloud->points[i].r = landmarks[i].color[2];
+        if (landmark.visible >= MIN_LANDMARK_SEEN)
+        {
+            pcl::PointXYZRGB pt;
+            pt.x = landmark.pt3d.x;
+            pt.y = landmark.pt3d.y;
+            pt.z = landmark.pt3d.z;
+            pt.b = landmark.color[0];
+            pt.g = landmark.color[1];
+            pt.r = landmark.color[2];
+            cloud->push_back(pt);
+        }
     }
+
     pcl::visualization::CloudViewer viewer(name);
     viewer.showCloud(cloud);
     while (!viewer.wasStopped())
@@ -247,28 +252,28 @@ void SFM::triangulate_points()
             double scale = 0;
             int count = 0;
 
-            Point3f prev_camera;
+            Point3d prev_camera;
 
             prev_camera.x = prev.T.at<double>(0, 3);
             prev_camera.y = prev.T.at<double>(1, 3);
             prev_camera.z = prev.T.at<double>(2, 3);
 
-            vector<Point3f> new_pts;
-            vector<Point3f> existing_pts;
+            vector<Point3d> new_pts;
+            vector<Point3d> existing_pts;
 
             for (size_t j = 0; j < kp_used.size(); j++)
             {
                 size_t k = kp_used[j];
                 if (outlier_mask.at<unsigned char>(j) && prev.is_keypoint_exists(k, i + 1) && prev.is_keypoint_landmark(k))
                 {
-                    Point3f landmark_3d;
+                    Point3d landmark_3d;
 
                     landmark_3d.x = landmarks_4d.at<float>(0, j) / landmarks_4d.at<float>(3, j);
                     landmark_3d.y = landmarks_4d.at<float>(1, j) / landmarks_4d.at<float>(3, j);
                     landmark_3d.z = landmarks_4d.at<float>(2, j) / landmarks_4d.at<float>(3, j);
 
                     size_t idx = prev.get_keypoint_landmark(k);
-                    Point3f avg_landmark;
+                    Point3d avg_landmark;
                     avg_landmark.x = landmarks[idx].pt3d.x / static_cast<uint>(landmarks[idx].visible - 1);
                     avg_landmark.y = landmarks[idx].pt3d.y / static_cast<uint>(landmarks[idx].visible - 1);
                     avg_landmark.z = landmarks[idx].pt3d.z / static_cast<uint>(landmarks[idx].visible - 1);
@@ -340,7 +345,7 @@ void SFM::triangulate_points()
                 size_t k = kp_used[j];
                 size_t kp_match = prev.get_keypoint_match(k, i + 1);
 
-                Point3f landmark_3d;
+                Point3d landmark_3d;
 
                 landmark_3d.x = landmarks_4d.at<float>(0, j) / landmarks_4d.at<float>(3, j);
                 landmark_3d.y = landmarks_4d.at<float>(1, j) / landmarks_4d.at<float>(3, j);
@@ -390,6 +395,52 @@ void SFM::triangulate_points()
             landmark.pt3d.z /= (landmark.visible - 1);
         }
     }
+}
 
-    visualise_pointcloud("Sparse PC: Before BA");
+void SFM::bundle_adjust()
+{
+    using namespace ceres;
+
+    Problem problem;
+
+    for (const auto &pose : poses)
+    {
+        auto T = pose.T;
+        assert(T.isContinuous());
+
+        for (const auto &map : pose.keypoint_landmark)
+        {
+            const auto kp_id = map.first;
+            const auto landmark_id = map.second;
+
+            auto landmark = landmarks[landmark_id];
+            if (landmark.visible < MIN_LANDMARK_SEEN)
+                continue;
+
+            const auto &kp = pose.keypoints[kp_id];
+
+            // prepare datapoints
+            const auto &obs_x = kp.pt.x;
+            const auto &obs_y = kp.pt.y;
+            const auto &focal = K.at<double>(0, 0);
+            const auto &cx = K.at<double>(0, 2);
+            const auto &cy = K.at<double>(1, 2);
+
+            CostFunction *cost_function =
+                SnavelyReprojectionError::Create(obs_x, obs_y, focal, cx, cy);
+            problem.AddResidualBlock(cost_function,
+                                     NULL /* squared loss */,
+                                     T.ptr<double>(),
+                                     &(landmark.pt3d.x),
+                                     &(landmark.pt3d.y),
+                                     &(landmark.pt3d.z));
+        }
+    }
+    Solver::Options options;
+    options.linear_solver_type = DENSE_SCHUR;
+    options.minimizer_progress_to_stdout = true;
+
+    Solver::Summary summary;
+    Solve(options, &problem, &summary);
+    std::cout << summary.FullReport() << "\n";
 }
