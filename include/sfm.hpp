@@ -21,11 +21,11 @@ public:
     std::vector<Landmark> landmarks; // 3d points
 
 private:
-    const int IMAGE_DOWNSAMPLE;  // downsample the image to speed up processing
-    const double FOCAL_LENGTH_X; // focal length in pixels, after downsampling, guess from jpeg EXIF data
-    const double FOCAL_LENGTH_Y; // focal length in pixels, after downsampling, guess from jpeg EXIF data
-    const int MIN_LANDMARK_SEEN; // minimum number of camera views a 3d point (landmark) has to be seen to be used
-    const std::string IMAGE_DIR; // Dataset directory
+    const int IMAGE_DOWNSAMPLE;   // downsample the image to speed up processing
+    const double FOCAL_LENGTH_X;  // focal length in pixels, after downsampling, guess from jpeg EXIF data
+    const double FOCAL_LENGTH_Y;  // focal length in pixels, after downsampling, guess from jpeg EXIF data
+    const uint MIN_LANDMARK_SEEN; // minimum number of camera views a 3d point (landmark) has to be seen in to be used
+    const std::string IMAGE_DIR;  // Dataset directory
 
 private:
     void initialise_intrinsics();
@@ -50,4 +50,6 @@ public:
     void visualise_pointcloud(std::string name);
 
     void bundle_adjust();
+
+    void generate_for_pmvs2();
 };

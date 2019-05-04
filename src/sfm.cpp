@@ -24,8 +24,8 @@ void SFM::initialise_intrinsics()
     double cy = poses[0].image.size().height / 2;
 
     K = cv::Mat::eye(3, 3, CV_64F);
-    K.at<double>(0, 0) = FOCAL_LENGTH_X;
-    K.at<double>(1, 1) = FOCAL_LENGTH_Y;
+    K.at<double>(0, 0) = FOCAL_LENGTH_X / IMAGE_DOWNSAMPLE;
+    K.at<double>(1, 1) = FOCAL_LENGTH_Y / IMAGE_DOWNSAMPLE;
     K.at<double>(0, 2) = cx;
     K.at<double>(1, 2) = cy;
 
@@ -442,5 +442,15 @@ void SFM::bundle_adjust()
 
     Solver::Summary summary;
     Solve(options, &problem, &summary);
-    std::cout << summary.FullReport() << "\n";
+    LOG(INFO) << summary.FullReport() << "\n";
+}
+
+void SFM::generate_for_pmvs2()
+{
+    /* WIP*/
+    auto K_ = K.clone();
+    K_.at<double>(0, 0) *= IMAGE_DOWNSAMPLE;
+    K_.at<double>(1, 1) *= IMAGE_DOWNSAMPLE;
+    K_.at<double>(0, 2) *= IMAGE_DOWNSAMPLE;
+    K_.at<double>(1, 2) *= IMAGE_DOWNSAMPLE;
 }
