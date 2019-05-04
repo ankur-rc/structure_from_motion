@@ -403,9 +403,9 @@ void SFM::bundle_adjust()
 
     Problem problem;
 
-    for (const auto &pose : poses)
+    for (auto &pose : poses)
     {
-        auto T = pose.T;
+        auto &T = pose.T;
         assert(T.isContinuous());
 
         for (const auto &map : pose.keypoint_landmark)
@@ -413,18 +413,18 @@ void SFM::bundle_adjust()
             const auto kp_id = map.first;
             const auto landmark_id = map.second;
 
-            auto landmark = landmarks[landmark_id];
+            auto &landmark = landmarks[landmark_id];
             if (landmark.visible < MIN_LANDMARK_SEEN)
                 continue;
 
-            const auto &kp = pose.keypoints[kp_id];
+            const auto kp = pose.keypoints[kp_id];
 
             // prepare datapoints
-            const auto &obs_x = kp.pt.x;
-            const auto &obs_y = kp.pt.y;
-            const auto &focal = K.at<double>(0, 0);
-            const auto &cx = K.at<double>(0, 2);
-            const auto &cy = K.at<double>(1, 2);
+            const auto obs_x = kp.pt.x;
+            const auto obs_y = kp.pt.y;
+            const auto focal = K.at<double>(0, 0);
+            const auto cx = K.at<double>(0, 2);
+            const auto cy = K.at<double>(1, 2);
 
             CostFunction *cost_function =
                 SnavelyReprojectionError::Create(obs_x, obs_y, focal, cx, cy);
@@ -438,6 +438,8 @@ void SFM::bundle_adjust()
     }
     Solver::Options options;
     options.linear_solver_type = DENSE_SCHUR;
+    options.max_num_iterations = 50;
+    options.use_explicit_schur_complement = true;
     options.minimizer_progress_to_stdout = true;
 
     Solver::Summary summary;
