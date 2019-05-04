@@ -23,8 +23,10 @@ Use ```ccmake``` to further tweak options.
 $ usage: GLOG_logtostderr=1 ./sfm downsample fx fy dataset
                    
   downsample: (int) scaling factor for images (increases performance for values greater than 1)
-  fx        : (double) focal length in 'px' calculated as image_width(px)*focal_length(mm)/sensor_width(mm)
-  fy        : (double) focal length in 'px' calculated as image_height(px)*focal_length(mm)/sensor_height(mm)
+  fx        : (double) focal length in 'px' 
+              -> calculated as image_width(px)*focal_length(mm)/sensor_width(mm)
+  fy        : (double) focal length in 'px' 
+              -> calculated as image_height(px)*focal_length(mm)/sensor_height(mm)
   dataset   : (string) path to dataset directory
   
 ```
