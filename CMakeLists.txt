@@ -27,7 +27,7 @@ set(Boost_USE_MULTITHREADED OFF)
 # set(Boost_DEBUG TRUE)
 set(Boost_DETAILED_FAILURE_MSG TRUE)
 
-find_package(Boost 1.69.0 REQUIRED COMPONENTS system filesystem serialization program_options)   
+find_package(Boost 1.69.0 REQUIRED COMPONENTS system filesystem)   
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
 target_link_libraries(${CMAKE_PROJECT_NAME} ${Boost_LIBRARIES})
 
