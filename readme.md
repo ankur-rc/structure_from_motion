@@ -1,6 +1,6 @@
 ## Structure from Motion
 
-Given a sequence of images, estimates the 3D structure of the scene and the relative motion between each image.
+Given a sequence of images, estimates the 3D structure of the scene (sparse point cloud) and the relative motion between each image.
 
 ### Compile
 
